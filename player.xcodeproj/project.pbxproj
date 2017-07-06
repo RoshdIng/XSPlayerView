@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		95B407A01F0E3EE300D45662 /* UIView+Direction.m in Sources */ = {isa = PBXBuildFile; fileRef = 95B4079F1F0E3EE300D45662 /* UIView+Direction.m */; };
 		95CDE16C1F01F40E00DA2BA5 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 95CDE16B1F01F40E00DA2BA5 /* main.m */; };
 		95CDE16F1F01F40E00DA2BA5 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 95CDE16E1F01F40E00DA2BA5 /* AppDelegate.m */; };
 		95CDE1721F01F40E00DA2BA5 /* ViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 95CDE1711F01F40E00DA2BA5 /* ViewController.m */; };
@@ -31,6 +32,8 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		95B4079E1F0E3EE300D45662 /* UIView+Direction.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "UIView+Direction.h"; sourceTree = "<group>"; };
+		95B4079F1F0E3EE300D45662 /* UIView+Direction.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "UIView+Direction.m"; sourceTree = "<group>"; };
 		95CDE1671F01F40E00DA2BA5 /* player.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = player.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		95CDE16B1F01F40E00DA2BA5 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		95CDE16D1F01F40E00DA2BA5 /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
@@ -119,6 +122,8 @@
 				95CDE1761F01F40E00DA2BA5 /* Assets.xcassets */,
 				95CDE1781F01F40E00DA2BA5 /* LaunchScreen.storyboard */,
 				95CDE17B1F01F40E00DA2BA5 /* Info.plist */,
+				95B4079E1F0E3EE300D45662 /* UIView+Direction.h */,
+				95B4079F1F0E3EE300D45662 /* UIView+Direction.m */,
 				95CDE16A1F01F40E00DA2BA5 /* Supporting Files */,
 				95CDE1871F01F60A00DA2BA5 /* Masonry */,
 			);
@@ -271,6 +276,7 @@
 				95CDE16C1F01F40E00DA2BA5 /* main.m in Sources */,
 				95CDE1AF1F01F60A00DA2BA5 /* README.md in Sources */,
 				95CDE1A51F01F60A00DA2BA5 /* MASCompositeConstraint.m in Sources */,
+				95B407A01F0E3EE300D45662 /* UIView+Direction.m in Sources */,
 				95CDE1AC1F01F60A00DA2BA5 /* NSLayoutConstraint+MASDebugAdditions.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

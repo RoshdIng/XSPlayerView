@@ -10,6 +10,7 @@
 #import "XZAboutPlayerMaskView.h"
 #import "Masonry.h"
 #import <AVFoundation/AVFoundation.h>
+#import "UIView+Direction.h"
 
 #define WeakObj(o) try{}@finally{} __weak typeof(o) o##Weak = o;
 #define StrongObj(o) autoreleasepool{} __strong typeof(o) o = o##Weak;
@@ -30,6 +31,11 @@
  隐藏工具栏
  */
 @property (nonatomic, assign, getter = isHideMaskTool) BOOL hideMaskTool;
+
+/**
+ 提示加载中
+ */
+@property (nonatomic, strong) UILabel *tipLabel;
 
 /**
  用户自己点的是否播放，用来判断当缓存到可以播放时，是否调用startPlay
@@ -65,6 +71,8 @@
  视频缓存路径
  */
 @property (nonatomic, copy) NSString *videoSavePath;
+
+@property (nonatomic, strong) id timeObserve;
 
 @property (nonatomic, strong) AVPlayerLayer *playerLayer;
 @property (nonatomic, strong) AVPlayer *player;
@@ -107,66 +115,84 @@
     [self addSubview:maskView];
     self.maskView = maskView;
     
+    _tipLabel = [[UILabel alloc] init];
+    _tipLabel.text = @"加载中...";
+    _tipLabel.font = [UIFont systemFontOfSize:14];
+    _tipLabel.textColor = [UIColor whiteColor];
+    _tipLabel.backgroundColor = [UIColor blackColor];
+    _tipLabel.textAlignment = NSTextAlignmentCenter;
+    _tipLabel.layer.cornerRadius = 5;
+    _tipLabel.layer.masksToBounds = YES;
+    _tipLabel.hidden = YES;
+    [self addSubview:_tipLabel];
+    
     @WeakObj(maskView);
     @WeakObj(self);
     
     maskView.fullScreenBlock = ^(BOOL isFullScreen) {
         
-        if ([selfWeak.delegate respondsToSelector:@selector(setDeviceOrientationToPlayerView:orientation:)]) {
-            [selfWeak.delegate setDeviceOrientationToPlayerView:selfWeak orientation:isFullScreen ? UIDeviceOrientationLandscapeLeft : UIDeviceOrientationPortrait];
+        @StrongObj(self);
+        if ([self.delegate respondsToSelector:@selector(setDeviceOrientationToPlayerView:orientation:)]) {
+            [self.delegate setDeviceOrientationToPlayerView:self orientation:isFullScreen ? UIDeviceOrientationLandscapeLeft : UIDeviceOrientationPortrait];
         }
     };
     maskView.pauseOrPlayBlock = ^(BOOL isShouldPlay) {
-      
+        
+        @StrongObj(self);
+        
         _userClickPlayOrPause = isShouldPlay;
         
         if (isShouldPlay) {
             
-            [selfWeak startPlay];
+            [self startPlay];
+            self.tipLabel.hidden = YES;
         } else {
-            [selfWeak pausePlay];
+            [self pausePlay];
         }
     };
     maskView.sliderValueChangeBlock = ^(CGFloat value) {
+        @StrongObj(self);
         
-        [maskViewWeak setStartTime:value endTime:selfWeak.totalPlayTime currentProgress:value];
-        [selfWeak pausePlay];
-        selfWeak.sliderCurrentValue = value;
+        [maskViewWeak setStartTime:value endTime:self.totalPlayTime currentProgress:value];
+        [self pausePlay];
+        self.sliderCurrentValue = value;
         
-        [selfWeak.player seekToTime:CMTimeMake(selfWeak.sliderCurrentValue, 1) toleranceBefore:kCMTimeZero toleranceAfter:kCMTimeZero completionHandler:^(BOOL finished) {
+        [self.player seekToTime:CMTimeMake(self.sliderCurrentValue, 1) toleranceBefore:kCMTimeZero toleranceAfter:kCMTimeZero completionHandler:^(BOOL finished) {
             
-            [selfWeak startPlay];
+            [self startPlay];
         }];
     };
     
     maskView.sliderDidTouchBlock = ^(BOOL isStillTouch) {
+        @StrongObj(self);
         
         if (isStillTouch) {
             
-            [selfWeak pausePlay];
+            [self pausePlay];
         } else {
             
-            if (!selfWeak.player.currentItem.duration.value || !selfWeak.player.currentItem.duration.timescale) return;
+            if (!self.player.currentItem.duration.value || !self.player.currentItem.duration.timescale) return;
             
-            [selfWeak.player seekToTime:CMTimeMake(selfWeak.sliderCurrentValue, 1) toleranceBefore:kCMTimeZero toleranceAfter:kCMTimeZero completionHandler:^(BOOL finished) {
+            [self.player seekToTime:CMTimeMake(self.sliderCurrentValue, 1) toleranceBefore:kCMTimeZero toleranceAfter:kCMTimeZero completionHandler:^(BOOL finished) {
                 
-                [selfWeak startPlay];
+                [self startPlay];
             }];
         }
     };
     
     maskView.closePlayerViewBlock = ^{
-      
+        @StrongObj(self);
+        
         if (maskViewWeak.isFullScreen) {
             
-            if ([selfWeak.delegate respondsToSelector:@selector(setDeviceOrientationToPlayerView:orientation:)]) {
-                [selfWeak.delegate setDeviceOrientationToPlayerView:self orientation:UIDeviceOrientationPortrait];
+            if ([self.delegate respondsToSelector:@selector(setDeviceOrientationToPlayerView:orientation:)]) {
+                [self.delegate setDeviceOrientationToPlayerView:self orientation:UIDeviceOrientationPortrait];
                 maskViewWeak.fullScreen = NO;
             }
         } else {
-            [selfWeak pausePlay];
-            [selfWeak removeAllNotification];
-            [selfWeak removeFromSuperview];
+            [self pausePlay];
+            [self removeAllNotification];
+            [self removeFromSuperview];
         }
     };
     
@@ -181,6 +207,12 @@
     [super layoutSubviews];
     
     self.playerLayer.frame = self.frame;
+    CGSize textSize = [self.tipLabel.text boundingRectWithSize:self.size
+                                                       options:NSStringDrawingUsesLineFragmentOrigin
+                                                    attributes:@{NSFontAttributeName:[UIFont systemFontOfSize:14]}
+                                                       context:nil].size;
+    self.tipLabel.size = CGSizeMake(textSize.width + 50, textSize.height + 20);
+    self.tipLabel.center = self.center;
 }
 
 - (void)setVideoPath:(NSString *)videoPath
@@ -219,7 +251,7 @@
     if (self.isPlayComplete) return;
     
     @WeakObj(self);
-    [self.player addPeriodicTimeObserverForInterval:CMTimeMake(1.0, 1.0) queue:dispatch_get_main_queue() usingBlock:^(CMTime time) {
+    _timeObserve = [self.player addPeriodicTimeObserverForInterval:CMTimeMake(1.0, 1.0) queue:dispatch_get_main_queue() usingBlock:^(CMTime time) {
         
         @StrongObj(self);
         CGFloat currentTime = CMTimeGetSeconds(time);
@@ -251,13 +283,13 @@
             } else if (self.playerItem.status == AVPlayerItemStatusFailed || self.playerItem.status == AVPlayerStatusFailed) {
                 
                 [self pausePlay];
-                
+//                [MBProgressHUD showMessage:@"播放失败" hideByAfterDealy:1.0 inView:self.superview];
                 XZLog(@"player has failed . %@", self.playerItem.error);
             }
         } else if ([keyPath isEqualToString:@"playbackBufferEmpty"]) { // 缓存不足，需要进行暂停缓存
             
             [self pausePlay];
-//            [MBProgressHUD showMessage:@"加载中..." inView:self];
+            self.tipLabel.hidden = NO;
             self.loading = YES;
             
             XZLog(@"play pause");
@@ -265,8 +297,9 @@
             
             if (self.isPlayComplete) return;
             
-            if (self.isUserClickPlayOrPause) {
+            if (self.isUserClickPlayOrPause && self.playerItem.isPlaybackLikelyToKeepUp) {
                 [self startPlay];
+                self.tipLabel.hidden = YES;
             }
             
 //            [MBProgressHUD hideForView:self];
@@ -398,16 +431,24 @@
 
 - (void)removeAllNotification
 {
+    [self.player removeTimeObserver:self.timeObserve];
     [self.playerItem removeObserver:self forKeyPath:@"status"];
     [self.playerItem removeObserver:self forKeyPath:@"loadedTimeRanges"];
     [self.playerItem removeObserver:self forKeyPath:@"playbackBufferEmpty"];
     [self.playerItem removeObserver:self forKeyPath:@"playbackLikelyToKeepUp"];
     [[NSNotificationCenter defaultCenter] removeObserver:self name:AVPlayerItemDidPlayToEndTimeNotification object:self.player.currentItem];
-    [[NSNotificationCenter defaultCenter] removeObserver:self name:AVPlayerItemPlaybackStalledNotification object:self.playerItem];;
+    [[NSNotificationCenter defaultCenter] removeObserver:self name:AVPlayerItemPlaybackStalledNotification object:self.playerItem];
     
+    [self.player.currentItem cancelPendingSeeks];
+    [self.player.currentItem.asset cancelLoading];
     self.playerItem = nil;
     self.player = nil;
     self.playerLayer = nil;
+    self.tipLabel = nil;
+    self.delegate = nil;
+    [self.playerLayer removeFromSuperlayer];
+    [self.tipLabel removeFromSuperview];
+    [self.maskView removeFromSuperview];
 }
 
 - (void)dealloc
